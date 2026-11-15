@@ -1,14 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
   getAuth,
+  signInWithPopup,
   signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
-  signOut,
-  getRedirectResult
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// ====== Configuración de Firebase ======
+// ====== Firebase ======
 const firebaseConfig = {
   apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo",
   authDomain: "moonslot-d9f74.firebaseapp.com",
@@ -19,7 +20,7 @@ const firebaseConfig = {
   measurementId: "G-91F8QJVWGM"
 };
 
-// ====== URL del Backend (Fly.io) ======
+// ====== Backend (Fly.io or your own domain) ======
 const API_URL = "https://moonslot.fly.dev/api/obfuscate";
 
 const app = initializeApp(firebaseConfig);
@@ -27,43 +28,48 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+const AUTH_ERRORS = {
+  "auth/unauthorized-domain": "This domain is not authorized in Firebase. Add it under Authentication > Settings > Authorized domains.",
+  "auth/operation-not-allowed": "Google sign-in is not enabled in Firebase. Enable it under Authentication > Sign-in method.",
+  "auth/popup-blocked": "Your browser blocked the sign-in popup. Allow popups and try again.",
+  "auth/network-request-failed": "Network error. Check your connection and try again."
+};
+
 let currentUser = null;
 
-// ====== Manejo de Autenticación ======
+// ====== Returning from Google redirect (mobile) ======
+getRedirectResult(auth).catch((error) => {
+  console.error("Redirect login error:", error.code, error.message);
+  window.dispatchEvent(new CustomEvent("moon:error", {
+    detail: AUTH_ERRORS[error.code] || `Sign in failed (${error.code}).`
+  }));
+});
 
-// Atrapar el resultado cuando el usuario vuelve de la página de Google
-getRedirectResult(auth)
-  .then((result) => {
-    if (result && result.user) {
-      console.log("Sesión iniciada con éxito:", result.user.email);
-    }
-  })
-  .catch((error) => {
-    console.error("Error en redirect:", error);
-    const message = error.code === "auth/unauthorized-domain"
-      ? "Este dominio no está autorizado en Firebase. Agrégalo en Authentication > Settings > Authorized domains."
-      : "Error al iniciar sesión. Inténtalo de nuevo.";
-    window.dispatchEvent(new CustomEvent("moon:error", { detail: message }));
-  });
-
-// Escuchar cuando el usuario hace clic en "Login" desde el HTML
+// ====== Auth bridge with index.html ======
 window.addEventListener("moon:signin", async () => {
   try {
-    await signInWithRedirect(auth, provider);
+    if (isMobile) {
+      await signInWithRedirect(auth, provider);
+    } else {
+      await signInWithPopup(auth, provider);
+    }
   } catch (error) {
-    const message = error.code === "auth/unauthorized-domain"
-      ? "Este dominio no está autorizado en Firebase. Agrégalo en Authentication > Settings > Authorized domains."
-      : "Error al iniciar sesión. Inténtalo de nuevo.";
-    window.dispatchEvent(new CustomEvent("moon:error", { detail: message }));
+    console.error("Login error:", error.code, error.message);
+
+    if (error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request") return;
+
+    window.dispatchEvent(new CustomEvent("moon:error", {
+      detail: AUTH_ERRORS[error.code] || `Sign in failed (${error.code}).`
+    }));
   }
 });
 
-// Escuchar cuando el usuario cierra sesión
 window.addEventListener("moon:signout", () => {
   signOut(auth);
 });
 
-// Mantener el HTML actualizado con el estado del usuario
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
   window.dispatchEvent(new CustomEvent("moon:auth", {
@@ -71,15 +77,14 @@ onAuthStateChanged(auth, (user) => {
   }));
 });
 
-// ====== Lógica del Obfuscador ======
-
+// ====== Protection tool ======
 const $ = (id) => document.getElementById(id);
 const inputCode = $("input-code");
 const outputCode = $("output-code");
 const customSignature = $("custom-signature");
 const modeSelect = $("obfuscation-mode");
 
-// Clonamos el botón para eliminar el evento falso que trae el index.html
+// Replace the button to drop the placeholder listener from index.html.
 const oldButton = $("obfuscate-btn");
 const button = oldButton.cloneNode(true);
 oldButton.replaceWith(button);
@@ -88,32 +93,34 @@ const idleHTML = button.innerHTML;
 const spinnerHTML = `
   <svg class="w-5 h-5 animate-spin mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-  </svg> Protegiendo...`;
+  </svg> Protecting...`;
 
 button.addEventListener("click", async () => {
   const code = inputCode.value.trim();
   if (!code) {
-    alert("Por favor, pega tu código Lua primero.");
+    alert("Paste your Lua code first.");
     return;
   }
   if (!currentUser) {
-    alert("Debes iniciar sesión para usar el obfuscador.");
+    alert("Please sign in first.");
     return;
   }
 
   button.disabled = true;
   button.innerHTML = spinnerHTML;
-  outputCode.value = "Procesando en el servidor...";
+  outputCode.value = "Processing on the server...";
 
   try {
-    // Enviamos la petición a Fly.io
+    const token = await currentUser.getIdToken();
+
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
-        code: code,
+        code,
         mode: modeSelect.value,
         customString: customSignature.value.trim() || "[Moon]",
         options: {}
@@ -121,19 +128,16 @@ button.addEventListener("click", async () => {
     });
 
     const data = await response.json().catch(() => ({}));
-    
     if (!response.ok || data.error) {
-      throw new Error(data.error || `Error del servidor (${response.status}).`);
+      throw new Error(data.error || `Server error (${response.status}).`);
     }
 
     outputCode.value = data.obfuscated;
   } catch (error) {
     console.error(error);
     outputCode.value = "";
-    
-    // Si el error es de conexión, avisamos sobre CORS
     const message = error instanceof TypeError
-      ? "No se pudo conectar al servidor. Revisa la URL y la configuración de CORS en Fly.io."
+      ? "Could not reach the server. Check the API URL and CORS settings."
       : error.message;
     alert(message);
   } finally {
