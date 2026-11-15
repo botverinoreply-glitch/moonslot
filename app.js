@@ -9,7 +9,7 @@ import {
 
 const firebaseConfig = {
   apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo",
-  authDomain: "moonslot-d9f74.firebaseapp.com", // Volvemos al original, es más seguro en móviles
+  authDomain: "moonslot.localhost.cc", // ✅ Clave: Tu dominio propio
   projectId: "moonslot-d9f74",
   storageBucket: "moonslot-d9f74.firebasestorage.app",
   messagingSenderId: "1061318532737",
@@ -21,31 +21,29 @@ const API_URL = "https://moonslot.fly.dev/api/obfuscate";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// Configuramos el proveedor para que no fuerce la redirección en móvil
 const provider = new GoogleAuthProvider();
-provider.setCustomParameters({ prompt: "select_account" });
+provider.setCustomParameters({ 
+    prompt: "select_account",
+    display: "popup" // ✅ Intenta forzar el modo ventana emergente
+});
 
 let currentUser = null;
 
 window.addEventListener("moon:signin", async () => {
   try {
-    await signInWithPopup(auth, provider);
+    await signInWithPopup(auth, provider); // ✅ Volvemos a popup
   } catch (error) {
-    // 🚨 AQUÍ ESTÁ LA MAGIA: Esto te mostrará el error en pantalla
-    alert("ERROR REAL DE FIREBASE:\n" + error.code + "\n\n" + error.message);
-    
-    if (error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request") return;
-    
+    if (error.code === "auth/popup-closed-by-user") return;
     const message = error.code === "auth/unauthorized-domain"
-      ? "Este dominio no está autorizado en Firebase."
-      : "Error al iniciar sesión.";
-      
+      ? "Dominio no autorizado en Firebase. Revisa la configuración."
+      : `Error: ${error.code || 'Desconocido'}`;
     window.dispatchEvent(new CustomEvent("moon:error", { detail: message }));
   }
 });
 
-window.addEventListener("moon:signout", () => {
-  signOut(auth);
-});
+window.addEventListener("moon:signout", () => { signOut(auth); });
 
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
@@ -54,6 +52,7 @@ onAuthStateChanged(auth, (user) => {
   }));
 });
 
+// ====== Lógica del Obfuscador ======
 const $ = (id) => document.getElementById(id);
 const inputCode = $("input-code");
 const outputCode = $("output-code");
@@ -72,7 +71,6 @@ const spinnerHTML = `
 
 button.addEventListener("click", async () => {
   const code = inputCode.value.trim();
-  
   if (!code) return alert("Por favor, pega tu código Lua primero.");
   if (!currentUser) return alert("Debes iniciar sesión para usar el obfuscador.");
 
