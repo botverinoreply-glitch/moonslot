@@ -7,10 +7,9 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// ====== 1. Configuración de Firebase ======
 const firebaseConfig = {
   apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo",
-  authDomain: "moonslot.localhost.cc", // ✅ Clave para que funcione en tu dominio
+  authDomain: "moonslot-d9f74.firebaseapp.com", // Volvemos al original, es más seguro en móviles
   projectId: "moonslot-d9f74",
   storageBucket: "moonslot-d9f74.firebasestorage.app",
   messagingSenderId: "1061318532737",
@@ -18,9 +17,6 @@ const firebaseConfig = {
   measurementId: "G-91F8QJVWGM"
 };
 
-// ====== 2. URL de tu Motor Python ======
-// ⚠️ Si creaste el proyecto de Python en Enzonic, cambia esta URL por la de Enzonic.
-// Si sigue en Fly.io, déjala así.
 const API_URL = "https://moonslot.fly.dev/api/obfuscate"; 
 
 const app = initializeApp(firebaseConfig);
@@ -30,17 +26,18 @@ provider.setCustomParameters({ prompt: "select_account" });
 
 let currentUser = null;
 
-// ====== 3. Lógica de Autenticación (POPUP) ======
 window.addEventListener("moon:signin", async () => {
   try {
     await signInWithPopup(auth, provider);
   } catch (error) {
-    console.error("Error de login:", error);
+    // 🚨 AQUÍ ESTÁ LA MAGIA: Esto te mostrará el error en pantalla
+    alert("ERROR REAL DE FIREBASE:\n" + error.code + "\n\n" + error.message);
+    
     if (error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request") return;
     
     const message = error.code === "auth/unauthorized-domain"
-      ? "Este dominio no está autorizado en Firebase. Agrégalo en Authentication > Settings."
-      : "Error al iniciar sesión. Inténtalo de nuevo.";
+      ? "Este dominio no está autorizado en Firebase."
+      : "Error al iniciar sesión.";
       
     window.dispatchEvent(new CustomEvent("moon:error", { detail: message }));
   }
@@ -57,14 +54,12 @@ onAuthStateChanged(auth, (user) => {
   }));
 });
 
-// ====== 4. Lógica del Obfuscador ======
 const $ = (id) => document.getElementById(id);
 const inputCode = $("input-code");
 const outputCode = $("output-code");
 const customSignature = $("custom-signature");
 const modeSelect = $("obfuscation-mode");
 
-// Clonamos el botón para eliminar cualquier evento falso que traiga el index.html
 const oldButton = $("obfuscate-btn");
 const button = oldButton.cloneNode(true);
 oldButton.replaceWith(button);
@@ -78,14 +73,8 @@ const spinnerHTML = `
 button.addEventListener("click", async () => {
   const code = inputCode.value.trim();
   
-  if (!code) {
-    alert("Por favor, pega tu código Lua primero.");
-    return;
-  }
-  if (!currentUser) {
-    alert("Debes iniciar sesión para usar el obfuscador.");
-    return;
-  }
+  if (!code) return alert("Por favor, pega tu código Lua primero.");
+  if (!currentUser) return alert("Debes iniciar sesión para usar el obfuscador.");
 
   button.disabled = true;
   button.innerHTML = spinnerHTML;
@@ -94,9 +83,7 @@ button.addEventListener("click", async () => {
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         code: code,
         mode: modeSelect.value,
@@ -106,19 +93,13 @@ button.addEventListener("click", async () => {
     });
 
     const data = await response.json().catch(() => ({}));
-    
-    if (!response.ok || data.error) {
-      throw new Error(data.error || `Error del servidor (${response.status}).`);
-    }
+    if (!response.ok || data.error) throw new Error(data.error || `Error del servidor (${response.status}).`);
 
     outputCode.value = data.obfuscated;
   } catch (error) {
     console.error(error);
     outputCode.value = "";
-    const message = error instanceof TypeError
-      ? "No se pudo conectar al servidor. Revisa la URL y el CORS en tu backend de Python."
-      : error.message;
-    alert(message);
+    alert(error instanceof TypeError ? "No se pudo conectar al servidor de Python." : error.message);
   } finally {
     button.innerHTML = idleHTML;
     button.disabled = false;
