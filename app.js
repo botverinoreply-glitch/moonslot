@@ -9,15 +9,15 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// ====== Firebase ======
+// ====== Firebase (copied from Firebase Console > Project settings > Your apps) ======
 const firebaseConfig = {
-  apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo",
+  apiKey: "AIzaSyBsIXV8ZDhYziVzHjP33H8yQW5HJ8GFtyo",
   authDomain: "moonslot-d9f74.firebaseapp.com",
   projectId: "moonslot-d9f74",
   storageBucket: "moonslot-d9f74.firebasestorage.app",
   messagingSenderId: "1061318532737",
   appId: "1:1061318532737:web:5c3de74d16d1453dc73780",
-  measurementId: "G-91F8QJVWGM"
+  measurementId: "G-91FBQJVVGM"
 };
 
 // ====== Backend (Fly.io or your own domain) ======
@@ -34,7 +34,9 @@ const AUTH_ERRORS = {
   "auth/unauthorized-domain": "This domain is not authorized in Firebase. Add it under Authentication > Settings > Authorized domains.",
   "auth/operation-not-allowed": "Google sign-in is not enabled in Firebase. Enable it under Authentication > Sign-in method.",
   "auth/popup-blocked": "Your browser blocked the sign-in popup. Allow popups and try again.",
-  "auth/network-request-failed": "Network error. Check your connection and try again."
+  "auth/network-request-failed": "Network error. Check your connection and try again.",
+  "auth/api-key-not-valid": "The Firebase API key is invalid. Copy the config again from Firebase Console.",
+  "auth/requests-from-referer-blocked": "This site is blocked by the API key restrictions in Google Cloud Console."
 };
 
 let currentUser = null;
