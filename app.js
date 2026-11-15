@@ -10,7 +10,7 @@ import {
 // ====== 1. Configuración de Firebase ======
 const firebaseConfig = {
   apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo",
-  authDomain: "moonslot.localhost.cc", // ✅ Cambiado a tu dominio propio
+  authDomain: "moonslot.localhost.cc", // ✅ Clave para que funcione en tu dominio
   projectId: "moonslot-d9f74",
   storageBucket: "moonslot-d9f74.firebasestorage.app",
   messagingSenderId: "1061318532737",
@@ -19,8 +19,8 @@ const firebaseConfig = {
 };
 
 // ====== 2. URL de tu Motor Python ======
-// ⚠️ Si creaste el proyecto de Python en Enzonic, cambia esta URL por la que te dio Enzonic.
-// Si lo dejaste en Fly.io, deja esta misma.
+// ⚠️ Si creaste el proyecto de Python en Enzonic, cambia esta URL por la de Enzonic.
+// Si sigue en Fly.io, déjala así.
 const API_URL = "https://moonslot.fly.dev/api/obfuscate"; 
 
 const app = initializeApp(firebaseConfig);
@@ -33,7 +33,7 @@ let currentUser = null;
 // ====== 3. Lógica de Autenticación (POPUP) ======
 window.addEventListener("moon:signin", async () => {
   try {
-    await signInWithPopup(auth, provider); // ✅ Usamos popup para evitar el error de storage
+    await signInWithPopup(auth, provider);
   } catch (error) {
     console.error("Error de login:", error);
     if (error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request") return;
@@ -92,7 +92,6 @@ button.addEventListener("click", async () => {
   outputCode.value = "Procesando en el servidor...";
 
   try {
-    // Enviamos la petición al backend de Python
     const response = await fetch(API_URL, {
       method: "POST",
       headers: {
