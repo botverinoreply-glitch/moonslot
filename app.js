@@ -10,7 +10,7 @@ import {
 // ====== 1. Configuración de Firebase ======
 const firebaseConfig = {
   apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo",
-  authDomain: "moonslot-d9f74.firebaseapp.com",
+  authDomain: "moonslot.localhost.cc", // ✅ Cambiado a tu dominio propio
   projectId: "moonslot-d9f74",
   storageBucket: "moonslot-d9f74.firebasestorage.app",
   messagingSenderId: "1061318532737",
@@ -19,6 +19,8 @@ const firebaseConfig = {
 };
 
 // ====== 2. URL de tu Motor Python ======
+// ⚠️ Si creaste el proyecto de Python en Enzonic, cambia esta URL por la que te dio Enzonic.
+// Si lo dejaste en Fly.io, deja esta misma.
 const API_URL = "https://moonslot.fly.dev/api/obfuscate"; 
 
 const app = initializeApp(firebaseConfig);
@@ -31,14 +33,15 @@ let currentUser = null;
 // ====== 3. Lógica de Autenticación (POPUP) ======
 window.addEventListener("moon:signin", async () => {
   try {
-    // Usamos Popup en lugar de Redirect para evitar el bloqueo de storage
-    await signInWithPopup(auth, provider);
+    await signInWithPopup(auth, provider); // ✅ Usamos popup para evitar el error de storage
   } catch (error) {
     console.error("Error de login:", error);
     if (error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request") return;
+    
     const message = error.code === "auth/unauthorized-domain"
       ? "Este dominio no está autorizado en Firebase. Agrégalo en Authentication > Settings."
       : "Error al iniciar sesión. Inténtalo de nuevo.";
+      
     window.dispatchEvent(new CustomEvent("moon:error", { detail: message }));
   }
 });
@@ -61,6 +64,7 @@ const outputCode = $("output-code");
 const customSignature = $("custom-signature");
 const modeSelect = $("obfuscation-mode");
 
+// Clonamos el botón para eliminar cualquier evento falso que traiga el index.html
 const oldButton = $("obfuscate-btn");
 const button = oldButton.cloneNode(true);
 oldButton.replaceWith(button);
@@ -73,17 +77,27 @@ const spinnerHTML = `
 
 button.addEventListener("click", async () => {
   const code = inputCode.value.trim();
-  if (!code) return alert("Por favor, pega tu código Lua primero.");
-  if (!currentUser) return alert("Debes iniciar sesión para usar el obfuscador.");
+  
+  if (!code) {
+    alert("Por favor, pega tu código Lua primero.");
+    return;
+  }
+  if (!currentUser) {
+    alert("Debes iniciar sesión para usar el obfuscador.");
+    return;
+  }
 
   button.disabled = true;
   button.innerHTML = spinnerHTML;
   outputCode.value = "Procesando en el servidor...";
 
   try {
+    // Enviamos la petición al backend de Python
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
         code: code,
         mode: modeSelect.value,
@@ -93,9 +107,11 @@ button.addEventListener("click", async () => {
     });
 
     const data = await response.json().catch(() => ({}));
+    
     if (!response.ok || data.error) {
       throw new Error(data.error || `Error del servidor (${response.status}).`);
     }
+
     outputCode.value = data.obfuscated;
   } catch (error) {
     console.error(error);
