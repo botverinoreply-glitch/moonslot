@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Moonslot | Lua Code Obfuscator</title>
+    <meta name="description" content="Moonslot is a platform that protects your Lua code from theft with fast, reliable obfuscation.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['"Cormorant Garamond"', 'serif']
+                    },
+                    colors: {
+                        moon: {
+                            bg: '#050505', card: '#0f0f13', border: '#27272a',
+                            purple: '#9333ea', purpledark: '#7e22ce',
+                            text: '#e4e4e7', muted: '#a1a1aa'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        body { background-color: #050505; color: #e4e4e7; }
+        .moon-glow {
+            position: absolute; width: 560px; height: 560px;
+            background: radial-gradient(circle, rgba(147,51,234,0.2) 0%, rgba(5,5,5,0) 70%);
+            top: 0; left: 50%; transform: translate(-50%, -20%);
+            z-index: 0; pointer-events: none;
+        }
+        .stars {
+            position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .6;
+            background-image:
+                radial-gradient(1px 1px at 10% 20%, #fff 50%, transparent 51%),
+                radial-gradient(1px 1px at 30% 70%, #fff 50%, transparent 51%),
+                radial-gradient(1.5px 1.5px at 60% 15%, #fff 50%, transparent 51%),
+                radial-gradient(1px 1px at 80% 60%, #fff 50%, transparent 51%),
+                radial-gradient(1px 1px at 45% 85%, #fff 50%, transparent 51%),
+                radial-gradient(1.5px 1.5px at 90% 30%, #fff 50%, transparent 51%);
+        }
+        .card-hover { transition: border-color .2s, transform .2s; }
+        .card-hover:hover { border-color: #9333ea; transform: translateY(-3px); }
+        .icon-box {
+            width: 48px; height: 48px; border-radius: 10px;
+            background: #000; border: 1px solid #27272a;
+            display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
+        }
+        .icon-box svg { width: 24px; height: 24px; color: #9333ea; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f0f13; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9333ea; }
+    </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden">
+
+    <!-- Icon sprite (inline SVG, no external stylesheet needed) -->
+    <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+        <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+        <symbol id="i-shield-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+        <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+        <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></symbol>
+        <symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></symbol>
+        <symbol id="i-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></symbol>
+        <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" x2="5" y1="12" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+    </svg>
+
+    <div class="moon-glow"></div>
+    <div class="stars"></div>
+
+    <!-- ================= LANDING ================= -->
+    <div id="landing-section" class="relative z-10">
+
+        <!-- Nav -->
+        <nav class="flex justify-between items-center max-w-6xl mx-auto px-6 py-5">
+            <a href="#top" class="flex items-center gap-3">
+                <svg viewBox="0 0 100 100" class="w-8 h-8">
+                    <defs>
+                        <radialGradient id="gNav" cx="40%" cy="40%" r="65%">
+                            <stop offset="0" stop-color="#f4f4f5"/><stop offset="1" stop-color="#71717a"/>
+                        </radialGradient>
+                        <mask id="mNav"><rect width="100" height="100" fill="#fff"/><circle cx="66" cy="44" r="40" fill="#000"/></mask>
+                    </defs>
+                    <circle cx="50" cy="50" r="45" fill="url(#gNav)" mask="url(#mNav)"/>
+                </svg>
+                <span class="font-serif text-2xl font-bold">Moon<span class="text-moon-purple">slot</span></span>
+            </a>
+            <div class="hidden md:flex items-center gap-8 text-sm text-moon-muted">
+                <a href="#features" class="hover:text-white transition-colors">Features</a>
+                <a href="#how" class="hover:text-white transition-colors">How it works</a>
+                <a href="#levels" class="hover:text-white transition-colors">Protection levels</a>
+                <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+            </div>
+            <button data-open-login class="bg-moon-purple hover:bg-moon-purpledark text-white font-semibold py-2 px-5 rounded-lg text-sm transition-colors">
+                Get Started
+            </button>
+        </nav>
+
+        <!-- Hero -->
+        <section id="top" class="max-w-4xl mx-auto text-center px-6 pt-16 pb-24">
+            <svg viewBox="0 0 100 100" class="w-36 h-36 mx-auto mb-6 drop-shadow-[0_0_30px_rgba(147,51,234,0.35)]">
+                <defs>
+                    <radialGradient id="gHero" cx="40%" cy="40%" r="65%">
+                        <stop offset="0" stop-color="#f4f4f5"/><stop offset="1" stop-color="#71717a"/>
+                    </radialGradient>
+                    <mask id="mHero"><rect width="100" height="100" fill="#fff"/><circle cx="66" cy="44" r="40" fill="#000"/></mask>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="url(#gHero)" mask="url(#mHero)"/>
+            </svg>
+            <p class="uppercase tracking-[0.3em] text-xs text-moon-purple mb-4">Code protection platform</p>
+            <h1 class="font-serif text-6xl md:text-7xl font-bold tracking-tight mb-6">Protect your Lua code<br>from theft.</h1>
+            <p class="text-moon-muted text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+                Moonslot turns your scripts into code that is extremely hard to read, copy or reverse engineer,
+                while keeping them running exactly as you wrote them.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button data-open-login class="bg-moon-purple hover:bg-moon-purpledark text-white font-bold py-4 px-10 rounded-xl text-lg transition-all shadow-[0_0_20px_rgba(147,51,234,0.45)] hover:shadow-[0_0_30px_rgba(147,51,234,0.7)]">
+                    Get Started
+                </button>
+                <a href="#how" class="border border-moon-border hover:border-moon-purple text-white font-semibold py-4 px-10 rounded-xl text-lg transition-colors">
+                    See how it works
+                </a>
+            </div>
+            <p class="text-moon-muted text-xs mt-6">Sign in with Google to start protecting your scripts.</p>
+        </section>
+
+        <!-- Stats -->
+        <section class="max-w-5xl mx-auto px-6 pb-24">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="bg-moon-card border border-moon-border rounded-xl p-6">
+                    <p class="font-serif text-4xl font-bold text-white">4</p>
+                    <p class="text-moon-muted text-sm mt-1">Protection levels</p>
+                </div>
+                <div class="bg-moon-card border border-moon-border rounded-xl p-6">
+                    <p class="font-serif text-4xl font-bold text-white">1 click</p>
+                    <p class="text-moon-muted text-sm mt-1">To protect a script</p>
+                </div>
+                <div class="bg-moon-card border border-moon-border rounded-xl p-6">
+                    <p class="font-serif text-4xl font-bold text-white">100%</p>
+                    <p class="text-moon-muted text-sm mt-1">Browser based</p>
+                </div>
+                <div class="bg-moon-card border border-moon-border rounded-xl p-6">
+                    <p class="font-serif text-4xl font-bold text-white">0</p>
+                    <p class="text-moon-muted text-sm mt-1">Installs required</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section id="features" class="max-w-6xl mx-auto px-6 pb-28">
+            <div class="text-center mb-14">
+                <p class="uppercase tracking-[0.3em] text-xs text-moon-purple mb-3">Features</p>
+                <h2 class="font-serif text-4xl md:text-5xl font-bold">Everything your code needs</h2>
+                <p class="text-moon-muted mt-4 max-w-2xl mx-auto">Built for developers who want their work protected without slowing down their workflow.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="card-hover bg-moon-card border border-moon-border rounded-2xl p-8">
+                    <div class="icon-box"><svg><use href="#i-shield"/></svg></div>
+                    <h3 class="font-semibold text-xl mb-3">Strong protection</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Your logic is transformed into a form that is extremely difficult to read, understand or copy.</p>
+                </div>
+                <div class="card-hover bg-moon-card border border-moon-border rounded-2xl p-8">
+                    <div class="icon-box"><svg><use href="#i-zap"/></svg></div>
+                    <h3 class="font-semibold text-xl mb-3">Instant results</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Paste your script, pick a level and get the protected version in seconds. No waiting, no queues.</p>
+                </div>
+                <div class="card-hover bg-moon-card border border-moon-border rounded-2xl p-8">
+                    <div class="icon-box"><svg><use href="#i-pen"/></svg></div>
+                    <h3 class="font-semibold text-xl mb-3">Your signature</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Add a custom name or tag to every protected script so your work is always recognizable.</p>
+                </div>
+                <div class="card-hover bg-moon-card border border-moon-border rounded-2xl p-8">
+                    <div class="icon-box"><svg><use href="#i-lock"/></svg></div>
+                    <h3 class="font-semibold text-xl mb-3">Private access</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Sign in with your Google account to keep your workspace secure and personal.</p>
+                </div>
+                <div class="card-hover bg-moon-card border border-moon-border rounded-2xl p-8">
+                    <div class="icon-box"><svg><use href="#i-copy"/></svg></div>
+                    <h3 class="font-semibold text-xl mb-3">One-click copy</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Copy the protected code straight to your clipboard and use it right away in your project.</p>
+                </div>
+                <div class="card-hover bg-moon-card border border-moon-border rounded-2xl p-8">
+                    <div class="icon-box"><svg><use href="#i-sliders"/></svg></div>
+                    <h3 class="font-semibold text-xl mb-3">Flexible levels</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Choose the protection that fits your project, from a light layer to advanced custom settings.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How it works -->
+        <section id="how" class="max-w-5xl mx-auto px-6 pb-28">
+            <div class="text-center mb-14">
+                <p class="uppercase tracking-[0.3em] text-xs text-moon-purple mb-3">How it works</p>
+                <h2 class="font-serif text-4xl md:text-5xl font-bold">Three simple steps</h2>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto rounded-full border border-moon-purple flex items-center justify-center font-serif text-2xl text-moon-purple mb-5 shadow-[0_0_20px_rgba(147,51,234,0.3)]">1</div>
+                    <h3 class="font-semibold text-lg mb-2">Sign in</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Continue with your Google account to access the protection tool.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto rounded-full border border-moon-purple flex items-center justify-center font-serif text-2xl text-moon-purple mb-5 shadow-[0_0_20px_rgba(147,51,234,0.3)]">2</div>
+                    <h3 class="font-semibold text-lg mb-2">Paste your script</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Add your original Lua code and choose the protection level that suits your project.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 mx-auto rounded-full border border-moon-purple flex items-center justify-center font-serif text-2xl text-moon-purple mb-5 shadow-[0_0_20px_rgba(147,51,234,0.3)]">3</div>
+                    <h3 class="font-semibold text-lg mb-2">Copy and deploy</h3>
+                    <p class="text-moon-muted text-sm leading-relaxed">Copy the protected version and use it in your project with confidence.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Levels (4) -->
+        <section id="levels" class="max-w-6xl mx-auto px-6 pb-28">
+            <div class="text-center mb-14">
+                <p class="uppercase tracking-[0.3em] text-xs text-moon-purple mb-3">Protection levels</p>
+                <h2 class="font-serif text-4xl md:text-5xl font-bold">Pick the right level</h2>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-moon-card border border-moon-border rounded-2xl py-10 px-6 text-center">
+                    <h3 class="font-semibold text-xl">Custom</h3>
+                </div>
+                <div class="bg-moon-card border border-moon-border rounded-2xl py-10 px-6 text-center">
+                    <h3 class="font-semibold text-xl">Normal</h3>
+                </div>
+                <div class="bg-moon-card border border-moon-purple rounded-2xl py-10 px-6 text-center shadow-[0_0_30px_rgba(147,51,234,0.2)] relative">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-moon-purple text-white text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">Recommended</span>
+                    <h3 class="font-semibold text-xl">Medium</h3>
+                </div>
+                <div class="bg-moon-card border border-moon-border rounded-2xl py-10 px-6 text-center">
+                    <h3 class="font-semibold text-xl">Max</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq" class="max-w-3xl mx-auto px-6 pb-28">
+            <div class="text-center mb-12">
+                <p class="uppercase tracking-[0.3em] text-xs text-moon-purple mb-3">FAQ</p>
+                <h2 class="font-serif text-4xl md:text-5xl font-bold">Questions & answers</h2>
+            </div>
+            <div class="space-y-4">
+                <details class="group bg-moon-card border border-moon-border rounded-xl p-6">
+                    <summary class="flex justify-between items-center cursor-pointer font-semibold list-none">
+                        What is Moonslot?
+                        <span class="text-moon-purple text-2xl leading-none group-open:rotate-45 transition-transform">+</span>
+                    </summary>
+                    <p class="text-moon-muted text-sm mt-4 leading-relaxed">Moonslot is a platform built to protect Lua code from theft and unauthorized copying. It transforms your scripts into a protected form that is much harder to read and reverse engineer.</p>
+                </details>
+                <details class="group bg-moon-card border border-moon-border rounded-xl p-6">
+                    <summary class="flex justify-between items-center cursor-pointer font-semibold list-none">
+                        Does the protected code still work?
+                        <span class="text-moon-purple text-2xl leading-none group-open:rotate-45 transition-transform">+</span>
+                    </summary>
+                    <p class="text-moon-muted text-sm mt-4 leading-relaxed">Yes. Protection is applied without changing what your script does, so the protected version runs the same way as the original.</p>
+                </details>
+                <details class="group bg-moon-card border border-moon-border rounded-xl p-6">
+                    <summary class="flex justify-between items-center cursor-pointer font-semibold list-none">
+                        Do I need to install anything?
+                        <span class="text-moon-purple text-2xl leading-none group-open:rotate-45 transition-transform">+</span>
+                    </summary>
+                    <p class="text-moon-muted text-sm mt-4 leading-relaxed">No. Moonslot runs entirely in your browser. Just sign in, paste your code and copy the result.</p>
+                </details>
+                <details class="group bg-moon-card border border-moon-border rounded-xl p-6">
+                    <summary class="flex justify-between items-center cursor-pointer font-semibold list-none">
+                        How do I sign in?
+                        <span class="text-moon-purple text-2xl leading-none group-open:rotate-45 transition-transform">+</span>
+                    </summary>
+                    <p class="text-moon-muted text-sm mt-4 leading-relaxed">Click Get Started and continue with your Google account. It is the only sign-in method available.</p>
+                </details>
+                <details class="group bg-moon-card border border-moon-border rounded-xl p-6">
+                    <summary class="flex justify-between items-center cursor-pointer font-semibold list-none">
+                        Is my code safe on Moonslot?
+                        <span class="text-moon-purple text-2xl leading-none group-open:rotate-45 transition-transform">+</span>
+                    </summary>
+                    <p class="text-moon-muted text-sm mt-4 leading-relaxed">Your scripts are processed for protection only. Keep your original files backed up, and always review the protected output before publishing it.</p>
+                </details>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="max-w-4xl mx-auto px-6 pb-28">
+            <div class="relative overflow-hidden bg-moon-card border border-moon-border rounded-3xl p-12 text-center">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-moon-purple to-transparent opacity-60"></div>
+                <h2 class="font-serif text-4xl md:text-5xl font-bold mb-4">Ready to protect your code?</h2>
+                <p class="text-moon-muted mb-8 max-w-xl mx-auto">Start in seconds. Sign in with Google and protect your first script today.</p>
+                <button data-open-login class="bg-moon-purple hover:bg-moon-purpledark text-white font-bold py-4 px-10 rounded-xl text-lg transition-all shadow-[0_0_20px_rgba(147,51,234,0.45)]">
+                    Get Started
+                </button>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-moon-border">
+            <div class="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8 text-sm">
+                <div>
+                    <p class="font-serif text-2xl font-bold mb-3">Moon<span class="text-moon-purple">slot</span></p>
+                    <p class="text-moon-muted leading-relaxed">A code protection platform for Lua developers who want their work kept safe.</p>
+                </div>
+                <div>
+                    <p class="font-semibold mb-3">Platform</p>
+                    <ul class="space-y-2 text-moon-muted">
+                        <li><a href="#features" class="hover:text-white transition-colors">Features</a></li>
+                        <li><a href="#how" class="hover:text-white transition-colors">How it works</a></li>
+                        <li><a href="#levels" class="hover:text-white transition-colors">Protection levels</a></li>
+                        <li><a href="#faq" class="hover:text-white transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="font-semibold mb-3">Account</p>
+                    <ul class="space-y-2 text-moon-muted">
+                        <li><button data-open-login class="hover:text-white transition-colors">Sign in</button></li>
+                        <li><a href="mailto:support@moonveil.cc" class="hover:text-white transition-colors">Contact support</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-moon-border">
+                <p class="max-w-6xl mx-auto px-6 py-6 text-moon-muted text-xs">© 2026 Moonslot. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ================= LOGIN ================= -->
+    <section id="login-section" class="hidden relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div class="bg-moon-card border border-moon-border p-10 rounded-2xl shadow-2xl w-full max-w-md text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-moon-purple to-transparent opacity-50"></div>
+            <svg viewBox="0 0 100 100" class="w-20 h-20 mx-auto mb-5">
+                <defs>
+                    <radialGradient id="gLogin" cx="40%" cy="40%" r="65%">
+                        <stop offset="0" stop-color="#f4f4f5"/><stop offset="1" stop-color="#71717a"/>
+                    </radialGradient>
+                    <mask id="mLogin"><rect width="100" height="100" fill="#fff"/><circle cx="66" cy="44" r="40" fill="#000"/></mask>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="url(#gLogin)" mask="url(#mLogin)"/>
+            </svg>
+            <h2 class="font-serif text-4xl font-bold mb-2">Moon<span class="text-moon-purple">slot</span></h2>
+            <p class="text-moon-muted mb-8 text-sm">Sign in to continue</p>
+            <button id="google-login" class="bg-white text-black font-semibold py-3 px-4 rounded-lg w-full flex items-center justify-center gap-3 hover:bg-gray-200 transition-colors duration-200">
+                <svg viewBox="0 0 48 48" class="w-5 h-5" aria-hidden="true">
+                    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+                    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+                    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+                    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.022 35.02 44 30.038 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+                </svg>
+                Continue with Google
+            </button>
+            <p id="login-error" class="hidden text-red-400 text-sm mt-4"></p>
+            <button data-back class="mt-6 text-moon-muted hover:text-white text-sm transition-colors inline-flex items-center gap-2">
+                <svg class="w-4 h-4"><use href="#i-arrow-left"/></svg> Back to home
+            </button>
+        </div>
+    </section>
+
+    <!-- ================= APP ================= -->
+    <div id="app-section" class="hidden relative z-10 w-full max-w-7xl mx-auto p-4 md:p-6 min-h-screen">
+        <header class="flex justify-between items-center mb-6 bg-moon-card border border-moon-border p-4 rounded-xl">
+            <div class="flex items-center gap-3">
+                <svg viewBox="0 0 100 100" class="w-8 h-8">
+                    <defs>
+                        <radialGradient id="gHeader" cx="40%" cy="40%" r="65%">
+                            <stop offset="0" stop-color="#f4f4f5"/><stop offset="1" stop-color="#71717a"/>
+                        </radialGradient>
+                        <mask id="mHeader"><rect width="100" height="100" fill="#fff"/><circle cx="66" cy="44" r="40" fill="#000"/></mask>
+                    </defs>
+                    <circle cx="50" cy="50" r="45" fill="url(#gHeader)" mask="url(#mHeader)"/>
+                </svg>
+                <h1 class="font-serif text-2xl font-bold">Moon<span class="text-moon-purple">slot</span>
+                    <span class="font-sans text-xs text-moon-muted font-normal px-2 py-1 bg-black rounded border border-moon-border">v1.0</span>
+                </h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="user-email" class="text-sm text-moon-muted hidden md:block"></span>
+                <button id="logout-btn" class="text-red-400 hover:text-red-300 text-sm border border-red-900/50 hover:border-red-500 px-4 py-2 rounded-lg transition-colors bg-red-900/10 inline-flex items-center gap-2">
+                    <svg class="w-4 h-4"><use href="#i-logout"/></svg> Sign out
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-moon-card border border-moon-border rounded-xl p-5 flex flex-col shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="text-sm font-semibold text-moon-text inline-flex items-center gap-2 text-moon-purple"><svg class="w-4 h-4"><use href="#i-code"/></svg><span class="text-moon-text">Original Lua Code</span></label>
+                    <button id="clear-btn" class="text-xs text-moon-muted hover:text-white transition-colors inline-flex items-center gap-1"><svg class="w-3.5 h-3.5"><use href="#i-trash"/></svg>Clear</button>
+                </div>
+                <textarea id="input-code" class="w-full flex-grow bg-black text-green-400 p-4 rounded-lg border border-moon-border focus:outline-none focus:border-moon-purple font-mono text-sm resize-none h-72" placeholder="-- Paste your script here..." spellcheck="false"></textarea>
+
+                <div class="mt-5 space-y-4">
+                    <div>
+                        <label class="block text-xs text-moon-muted mb-1">VM Signature / Name</label>
+                        <input type="text" id="custom-signature" class="w-full bg-black border border-moon-border text-white p-2.5 rounded-lg focus:outline-none focus:border-moon-purple text-sm" placeholder="e.g. [Moon]" value="[Moon]">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-moon-muted mb-1">Protection Level</label>
+                        <select id="obfuscation-mode" class="w-full bg-black border border-moon-border text-white p-2.5 rounded-lg focus:outline-none focus:border-moon-purple text-sm cursor-pointer">
+                            <option value="custom">Custom</option>
+                            <option value="normal">Normal</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="max">Max</option>
+                        </select>
+                    </div>
+                    <button id="obfuscate-btn" class="w-full bg-moon-purple hover:bg-moon-purpledark text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-[0_0_15px_rgba(147,51,234,0.4)] hover:shadow-[0_0_25px_rgba(147,51,234,0.6)] flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5"><use href="#i-shield-check"/></svg> Protect Script
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-moon-card border border-moon-border rounded-xl p-5 flex flex-col shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="text-sm font-semibold inline-flex items-center gap-2"><svg class="w-4 h-4 text-moon-purple"><use href="#i-lock"/></svg><span class="text-moon-text">Protected Code</span></label>
+                    <span id="copy-success" class="text-xs text-green-400 opacity-0 transition-opacity duration-300 inline-flex items-center gap-1"><svg class="w-3.5 h-3.5"><use href="#i-check"/></svg>Copied</span>
+                </div>
+                <textarea id="output-code" class="w-full flex-grow bg-black text-moon-purple p-4 rounded-lg border border-moon-border focus:outline-none font-mono text-sm resize-none h-72" readonly placeholder="Your protected code will appear here..."></textarea>
+                <button id="copy-btn" class="mt-5 w-full bg-moon-border hover:bg-gray-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4"><use href="#i-copy"/></svg> Copy Code
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== Navigation and views (works on its own) =====
+        const $ = (id) => document.getElementById(id);
+        const VIEWS = ["landing-section", "login-section", "app-section"];
+        let currentView = "landing-section";
+
+        function showView(id) {
+            currentView = id;
+            VIEWS.forEach((v) => $(v).classList.toggle("hidden", v !== id));
+            window.scrollTo({ top: 0 });
+        }
+
+        function showLoginError(msg) {
+            $("login-error").textContent = msg;
+            $("login-error").classList.remove("hidden");
+        }
+
+        function clearLoginError() {
+            $("login-error").classList.add("hidden");
+        }
+
+        document.querySelectorAll("[data-open-login]").forEach((el) =>
+            el.addEventListener("click", () => { clearLoginError(); showView("login-section"); })
+        );
+        document.querySelectorAll("[data-back]").forEach((el) =>
+            el.addEventListener("click", () => showView("landing-section"))
+        );
+
+        // ===== Auth bridge: app.js (Firebase) sends these events =====
+        window.addEventListener("moon:auth", (e) => {
+            const user = e.detail;
+            if (user) {
+                $("user-email").textContent = user.email || "";
+                showView("app-section");
+            } else {
+                $("user-email").textContent = "";
+                if (currentView === "app-section") showView("landing-section");
+            }
+        });
+
+        window.addEventListener("moon:error", (e) => showLoginError(e.detail));
+
+        $("google-login").addEventListener("click", () => {
+            clearLoginError();
+            window.dispatchEvent(new CustomEvent("moon:signin"));
+        });
+
+        $("logout-btn").addEventListener("click", () => {
+            window.dispatchEvent(new CustomEvent("moon:signout"));
+        });
+
+        // ===== Protection tool =====
+        // Replace obfuscar() with your current obfuscation engine.
+        function obfuscar(code, modo, firma) {
+            const header = `--[[ ${firma} | level: ${modo} ]]\n`;
+            return header + code;
+        }
+
+        $("obfuscate-btn").addEventListener("click", () => {
+            const code = $("input-code").value.trim();
+            if (!code) return;
+            const firma = $("custom-signature").value.trim() || "[Moon]";
+            const modo = $("obfuscation-mode").value;
+            $("output-code").value = obfuscar(code, modo, firma);
+        });
+
+        $("clear-btn").addEventListener("click", () => {
+            $("input-code").value = "";
+            $("output-code").value = "";
+        });
+
+        $("copy-btn").addEventListener("click", async () => {
+            const text = $("output-code").value;
+            if (!text) return;
+            await navigator.clipboard.writeText(text);
+            const msg = $("copy-success");
+            msg.classList.remove("opacity-0");
+            setTimeout(() => msg.classList.add("opacity-0"), 1500);
+        });
+    </script>
+
+    <!-- Firebase lives in app.js (separate file) -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
