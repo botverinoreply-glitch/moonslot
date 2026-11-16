@@ -7,15 +7,15 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// ====== 1. Configuración de Firebase (Revisada) ======
+// ====== 1. Configuración de Firebase (CORREGIDA) ======
 const firebaseConfig = {
-  apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo", // ✅ Llave exacta
-  authDomain: "auth.moonslot.localhost.cc", // ✅ Plan B
+  apiKey: "AIzaSyBsIXV8ZDhYziVzHjP33H8yQW5HJ8GFtyo", // ✅ Clave real corregida
+  authDomain: "moonslot-d9f74.firebaseapp.com", // ✅ Original de Firebase
   projectId: "moonslot-d9f74",
   storageBucket: "moonslot-d9f74.firebasestorage.app",
   messagingSenderId: "1061318532737",
   appId: "1:1061318532737:web:5c3de74d16d1453dc73780",
-  measurementId: "G-91F8QJVWGM"
+  measurementId: "G-91FBQJVVGM" // ✅ Corregido también
 };
 
 const app = initializeApp(firebaseConfig);
@@ -23,12 +23,13 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
+// ====== 2. URLs de tu Backend ======
 const API_OBFUSCATE = "https://moonslot.fly.dev/api/obfuscate"; 
 const API_AUTH = "https://moonslot.fly.dev/api/auth"; 
 
 let currentUser = null;
 
-// ====== 2. Sistema de Notificaciones (Toasts) ======
+// ====== 3. Sistema de Notificaciones (Toasts) ======
 const toastStyle = document.createElement('style');
 toastStyle.textContent = `
   .moon-toast {
@@ -57,7 +58,7 @@ function showToast(message, type = "info") {
   }, 4000);
 }
 
-// ====== 3. Autenticación ======
+// ====== 4. Autenticación ======
 window.addEventListener("moon:signin", async (e) => {
   const loginBtn = document.getElementById("google-login");
   const originalHTML = loginBtn.innerHTML;
@@ -105,7 +106,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ====== 4. Obfuscador ======
+// ====== 5. Obfuscador ======
 const $ = (id) => document.getElementById(id);
 const inputCode = $("input-code");
 const outputCode = $("output-code");
