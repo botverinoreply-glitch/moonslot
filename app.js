@@ -7,10 +7,10 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-// ====== 1. Configuración de Firebase (Plan B) ======
+// ====== 1. Configuración de Firebase (Revisada) ======
 const firebaseConfig = {
-  apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo",
-  authDomain: "auth.moonslot.localhost.cc", // ✅ Subdominio seguro para evitar bloqueos
+  apiKey: "AIzaSyB5IXV8ZDHYz1VzhJPH33hYQ6WHU8GFtyo", // ✅ Llave exacta
+  authDomain: "auth.moonslot.localhost.cc", // ✅ Plan B
   projectId: "moonslot-d9f74",
   storageBucket: "moonslot-d9f74.firebasestorage.app",
   messagingSenderId: "1061318532737",
@@ -23,14 +23,12 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
-// ====== 2. URLs del Backend ======
 const API_OBFUSCATE = "https://moonslot.fly.dev/api/obfuscate"; 
 const API_AUTH = "https://moonslot.fly.dev/api/auth"; 
 
 let currentUser = null;
 
-// ====== 3. Sistema de Notificaciones "Toast" (Estilo Reactivo) ======
-// Esto inyecta CSS dinámicamente para que no tengas que tocar tu HTML
+// ====== 2. Sistema de Notificaciones (Toasts) ======
 const toastStyle = document.createElement('style');
 toastStyle.textContent = `
   .moon-toast {
@@ -52,20 +50,15 @@ function showToast(message, type = "info") {
   toast.className = `moon-toast ${type}`;
   toast.textContent = message;
   document.body.appendChild(toast);
-  
-  // Animación de entrada
   setTimeout(() => toast.classList.add("show"), 10);
-  
-  // Desaparece después de 4 segundos
   setTimeout(() => {
     toast.classList.remove("show");
     setTimeout(() => toast.remove(), 300);
   }, 4000);
 }
 
-// ====== 4. Lógica de Autenticación ======
+// ====== 3. Autenticación ======
 window.addEventListener("moon:signin", async (e) => {
-  // Buscamos el botón para darle efecto de carga
   const loginBtn = document.getElementById("google-login");
   const originalHTML = loginBtn.innerHTML;
   
@@ -74,13 +67,10 @@ window.addEventListener("moon:signin", async (e) => {
 
   try {
     await signInWithPopup(auth, provider);
-    // El onAuthStateChanged se encargará de cambiar la pantalla
   } catch (error) {
     console.error("Error de login:", error);
     if (error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request") {
       showToast("Inicio de sesión cancelado.", "info");
-    } else if (error.code === "auth/unauthorized-domain") {
-      showToast("Dominio no autorizado. Revisa Firebase.", "error");
     } else {
       showToast(`Error: ${error.code}`, "error");
     }
@@ -101,7 +91,6 @@ onAuthStateChanged(auth, async (user) => {
     detail: user ? { email: user.email } : null
   }));
 
-  // 🚨 GUARDAR EN SUPABASE: Enviamos el usuario a tu backend de Python
   if (user && user.email) {
     try {
       await fetch(API_AUTH, {
@@ -116,7 +105,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ====== 5. Lógica del Obfuscador ======
+// ====== 4. Obfuscador ======
 const $ = (id) => document.getElementById(id);
 const inputCode = $("input-code");
 const outputCode = $("output-code");
@@ -135,7 +124,6 @@ const spinnerHTML = `
 
 button.addEventListener("click", async () => {
   const code = inputCode.value.trim();
-  
   if (!code) return showToast("Por favor, pega tu código Lua primero.", "error");
   if (!currentUser) return showToast("Debes iniciar sesión para usar el obfuscador.", "error");
 
@@ -169,13 +157,3 @@ button.addEventListener("click", async () => {
     button.disabled = false;
   }
 });
-
-// Animación para el botón de copiar
-const copyBtn = $("copy-btn");
-if (copyBtn) {
-    copyBtn.addEventListener("click", () => {
-        if(!outputCode.value) return showToast("No hay código para copiar.", "info");
-        // La función de copiar real ya está en tu index.html, solo añadimos feedback visual
-        showToast("Código copiado al portapapeles.", "success");
-    });
-}
